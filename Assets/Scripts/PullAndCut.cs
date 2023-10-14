@@ -98,6 +98,7 @@ public class PullAndCut : MonoBehaviour
         isSetPosition = false;
         activeCut = false;
         MeshCutter.GetComponent<MeshCutter>().enabled = false;
+        MeshCutter.transform.position = Vector3.zero;
     }
 
     // Update is called once per frame
@@ -117,11 +118,13 @@ public class PullAndCut : MonoBehaviour
             // Mesh Cutter가 Player의 위쪽으로 Set
             if (!activeCut)
             {
+                this.GetComponent<MeshRenderer>().enabled = false;
                 SetMeshCutter(primaryAttachPose, secondaryAttachPose);
                 SetSlicePoint(primaryAttachPose, secondaryAttachPose);
             }
             else
             {
+                this.GetComponent<MeshRenderer>().enabled = true;
                 sliceObjcts();
             }
 
