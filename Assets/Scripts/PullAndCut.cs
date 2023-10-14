@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Deform;
 using Unity.XR.CoreUtils;
+using UnityEditor.Animations;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.XR.Interaction.Toolkit;
@@ -16,10 +18,14 @@ public class PullAndCut : MonoBehaviour
     
     private XRGrabInteractable grabInteractable;
     private Pose primaryAttachPose, secondaryAttachPose;
-
+    private GameObject deformable;
+    private SquashAndStretchDeformer deformer;
+    
     private Pose originPose;
     private Vector3 middlePoint;
+    private Vector3 movementMiddle;
     private float distance;
+    private float maxDefromation = 1.5f;
 
 
     // Start is called before the first frame update
@@ -28,7 +34,14 @@ public class PullAndCut : MonoBehaviour
         MeshCutter = GameObject.FindWithTag("Cutter");
         grabInteractable = GetComponent<XRGrabInteractable>();
 
-        maxPullDistance = 1.0f;
+        // Deformable 특성이 있는 경우
+        if (TryGetComponent(out Deformable deform))
+        {
+            deformable = transform.GetChild(0).gameObject;
+            deformer = deformable.GetComponent<SquashAndStretchDeformer>();
+        }
+        
+        maxPullDistance = 1.3f;
     }
 
     void Initiate()
@@ -44,14 +57,17 @@ public class PullAndCut : MonoBehaviour
             originPose = this.gameObject.transform.GetWorldPose();
             isSetPosition = true;
             
-            // [FIX] 오브젝트가 중간에 위치함
+            // 두 손으로 Grab한 위치의 중간 지점
+            middlePoint = (primaryAttachPose.position + secondaryAttachPose.position) / 2;
+            movementMiddle = middlePoint;
+
+            // 오브젝트가 중간에 위치함
             grabInteractable.trackPosition = false;
         }
     }
     
     void SetMeshCutter(Pose First, Pose Second)
     {
-        middlePoint = (First.position + Second.position) / 2;
         //Debug.DrawRay(First.position, Second.position - First.position, Color.red, 0.5f, false);
 
         Vector3 handsVector = (Second.position - First.position).normalized;
@@ -65,12 +81,21 @@ public class PullAndCut : MonoBehaviour
         MeshCutter.transform.rotation = Quaternion.LookRotation(handsUpVector);
     }
 
+    void SetObjectMiddle()
+    {
+        middlePoint = (primaryAttachPose.position + secondaryAttachPose.position) / 2;
+        
+        // [FIX] 오브젝트가 중간에 위치함
+        Debug.Log(middlePoint - movementMiddle);
+        this.gameObject.transform.position += (middlePoint - movementMiddle);
+    }
+    
     void SetSlicePoint(Pose First, Pose Second)
     {
         // [FIX] 오브젝트가 중간에 위치함
-        //this.gameObject.transform.position = originPose.position;
+        this.gameObject.transform.position += movementMiddle - middlePoint;
         
-        // Update cut position
+        // [HAVE TO] Update cut position
         float negativeRatio, positiveRatio;
     }
 
@@ -106,9 +131,8 @@ public class PullAndCut : MonoBehaviour
     {
         if (grabInteractable.interactorsSelecting.Count == 2)
         {
-
             Initiate();
-            
+            SetObjectMiddle();
             distance = Vector3.Distance(primaryAttachPose.position, secondaryAttachPose.position);
             if (distance >= maxPullDistance)
             {
@@ -118,16 +142,25 @@ public class PullAndCut : MonoBehaviour
             // Mesh Cutter가 Player의 위쪽으로 Set
             if (!activeCut)
             {
-                this.GetComponent<MeshRenderer>().enabled = false;
+                //this.GetComponent<MeshRenderer>().enabled = false;
+                if (!(deformable == null))
+                {
+                    Vector3 handsVector = (secondaryAttachPose.position - primaryAttachPose.position).normalized;
+                    deformable.transform.rotation = Quaternion.LookRotation(handsVector);
+                    float weight = Mathf.Clamp(distance, 0, maxPullDistance) / maxPullDistance;
+                    deformer.Factor = distance * weight;
+                }
+                
                 SetMeshCutter(primaryAttachPose, secondaryAttachPose);
-                SetSlicePoint(primaryAttachPose, secondaryAttachPose);
+                //SetSlicePoint(primaryAttachPose, secondaryAttachPose);
             }
             else
             {
                 this.GetComponent<MeshRenderer>().enabled = true;
                 sliceObjcts();
             }
-
+            
+            movementMiddle = middlePoint;
         }
         else
         {
