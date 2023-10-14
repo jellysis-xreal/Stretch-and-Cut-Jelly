@@ -19,7 +19,7 @@ public class JellyMesh : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        _originalMesh = GetComponent<MeshFilter>().sharedMesh;
+        _originalMesh = GetComponent<MeshFilter>().mesh;
         _meshClone = Instantiate(_originalMesh);
 
         GetComponent<MeshFilter>().sharedMesh = _meshClone;
