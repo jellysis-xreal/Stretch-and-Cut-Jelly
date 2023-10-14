@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.XR.Interaction.Toolkit;
 
 namespace Assets.Scripts
 {
@@ -74,9 +75,13 @@ namespace Assets.Scripts
 
             meshGameObject.tag = originalObject.tag;
             
+            //
+            
             // [ADD] Set Properties
             meshGameObject.AddComponent<JellyMesh>();
             
+            // [ADD] Set Layer - Sliceable(index 10)
+            meshGameObject.layer = 10; 
 
             return meshGameObject;
         }
@@ -94,6 +99,15 @@ namespace Assets.Scripts
 
             var rb = gameObject.AddComponent<Rigidbody>();
             rb.useGravity = useGravity;
+            
+            // [ADD] XR Grab Interactable
+            XRGrabInteractable xrGrabInteractable = gameObject.AddComponent<XRGrabInteractable>();
+            xrGrabInteractable.selectMode = InteractableSelectMode.Multiple;
+            xrGrabInteractable.useDynamicAttach = true;
+            
+            // [ADD] 잡아당겨서 자르는 기능
+            gameObject.AddComponent<PullAndCut>();
+
         }
     }
 }
